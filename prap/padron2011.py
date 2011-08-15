@@ -160,10 +160,11 @@ class Spider(object):
 
         def num_votes_from_tr(tr):
             # there may be 2 <td> with class "vot", but only one won't be empty
-            vot_nums = tr.xpath('./td[contanis(@class, "vot") and '
-                                     'not(contains(@class, "pvot"]))]/text()')
+            vot_nums = tr.xpath('./td[contains(@class, "vot") and ' \
+                                     'not(contains(@class, "pvot"))]/text()')
             # Python lists need Ruby's compact method.
-            vot_nums = (y for y in (digits_only(c(x)) for x in vot_nums) if y)
+            vot_nums = [y for y in (digits_only(c(x)) for
+                    x in vot_nums if not '%' in vot_nums) if y]
             assert len(vot_nums) == 1
             return int(vot_nums[0])
 
@@ -176,12 +177,15 @@ class Spider(object):
                     # (a) agrupacion nombre
                     th = tr.xpath('./th[1]')[0]
                     bigrow['agrupacion'] = {'id': c(th.attrib['id']),
-                                            'nombre': c(th.text)}
+                                            'nombre': c(th.text),
+                                            'votos': num_votes_from_tr(tr)}
                 else:
                     th = tr.xpath('./th[1]')[0]
                     if 'agrupa' in th.attrib['class']:
                         # (b) agrupacion lista
-                        aglist = {'id': c(th.attrib['id']), 'nombre': c(th.text)}
+                        aglist = {'id': c(th.attrib['id']),
+                                  'nombre': c(th.text),
+                                  'votos': num_votes_from_tr(tr)}
                         if not 'listas' in bigrow:
                             bigrow['listas'] = []
                         bigrow['listas'].append(aglist)

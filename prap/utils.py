@@ -17,7 +17,7 @@ def force_unicode(text, encoding='utf8'):
 
 def digits_only(text):
     """Return only digits present in ``text``"""
-    return unicode(x for x in text if x.isdigit())
+    return u''.join(x for x in text if x.isdigit())
 
 def flip_flop(it, predicate):
     """
