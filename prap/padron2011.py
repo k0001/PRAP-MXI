@@ -186,8 +186,8 @@ class Spider(object):
                         bigrow['listas'].append(aglist)
                     else:
                         # (c) agrupacion formula
-                        bigrow['formula_id'] = c(th.attrib['id'])
-                        bigrow['formula_nombre'] = c(th.text)
+                        bigrow['formula'] = { 'id': c(th.attrib['id']),
+                                              'nombre': c(th.text) }
 
             out['votos'].append(bigrow)
         out['timestamp'] = time.time()
