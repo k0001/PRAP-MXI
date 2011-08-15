@@ -60,7 +60,7 @@ CARGOS = {
     'DN': u"Diputado Nacional",
     'GO': u"Gobernador",
     'SP': u"Senador Provincial",
-    #'SP': u"Diputado Proporcional" en la provincia 18 (San Juan)
+    #'SP': u"Senador Proporcional" en la provincia 18 (San Juan)
     'DP': u"Diputado Provincial",
     #'DP': u"Diputado Departamental" en la provincia 18 (San Juan)
 }
