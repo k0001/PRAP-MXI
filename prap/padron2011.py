@@ -27,11 +27,14 @@
 
 from __future__ import absolute_import
 
-import os
 import csv
+import json
 import logging
-import httplib2
+import os
+import time
+import html5lib
 from prap.crawler import Job
+from prap.utils import whitespace_cleanup, force_unicode, digits_only, flip_flop
 
 
 logging.basicConfig(level=logging.INFO)
@@ -93,14 +96,20 @@ CARGOS_POR_PROVINCIA = {
 
 
 
+def c(text, encoding='iso8859-1'):
+    """Simple text cleanup utility fit for our purposes"""
+    return whitespace_cleanup(force_unicode(text, encoding=encoding))
+
+
 class Spider(object):
     URL_BASE = "http://www.primarias2011.gob.ar/paginas/paginas"
     URL_RESULTS_TMPL = (URL_BASE + "/dat%(prov_id)s"
                                    "/D%(cargo_id)s%(distrito_id)s.htm")
 
-    def __init__(self):
+    def __init__(self, out_file):
         self.urls = []
         self._populate_start_jobs()
+        self._out_file = out_file
 
     def _populate_start_jobs(self):
         if not hasattr(self, 'jobs'):
@@ -129,8 +138,65 @@ class Spider(object):
                 log.info(u"Generated Job %s" % repr(job))
 
     def preprocess(self, job):
+        assert (200 <= job.response.status < 300)
         out = job.meta['preprocess'] = {}
+        out['votos'] = []
+
+        doc = html5lib.parse(job.data, treebuilder='lxml',
+                             namespaceHTMLElements=False)
+        html = doc.getroot()
+
+        tvotos = html.xpath('.//table[@id="TVOTOS"]')[0]
+        # we skip the first <tr> since it's the title row
+        # the rest of <tr> are repeated structures like this one.
+        # AGRUP 1:       (a) tr
+        # AGRUP 1:       (a)   th.sigla/text() -- agrupación nombre
+        # AGRUP 1: [OPT] (b) tr.agrupa
+        # AGRUP 1: [OPT] (b)   th.[agrupa,sigla]/text() -- agrupación lista
+        # AGRUP 1: [OPT] (c) tr.agrupa
+        # AGRUP 1: [OPT] (c)   th.sigla/text() -- agrupación formula
+        rows = tvotos.xpath('.//tr')[1:]
+
+        def num_votes_from_tr(tr):
+            # there may be 2 <td> with class "vot", but only one won't be empty
+            vot_nums = tr.xpath('./td[contanis(@class, "vot") and '
+                                     'not(contains(@class, "pvot"]))]/text()')
+            # Python lists need Ruby's compact method.
+            vot_nums = (y for y in (digits_only(c(x)) for x in vot_nums) if y)
+            assert len(vot_nums) == 1
+            return int(vot_nums[0])
+
+        oddity = lambda tr: 'r1' in tr.attrib['class']
+        for trs in flip_flop(rows, oddity):
+            bigrow = {}
+
+            for tr in trs:
+                if not bigrow:
+                    # (a) agrupacion nombre
+                    th = tr.xpath('./th[1]')[0]
+                    bigrow['agrupacion'] = {'id': c(th.attrib['id']),
+                                            'nombre': c(th.text)}
+                else:
+                    th = tr.xpath('./th[1]')[0]
+                    if 'agrupa' in th.attrib['class']:
+                        # (b) agrupacion lista
+                        aglist = {'id': c(th.attrib['id']), 'nombre': c(th.text)}
+                        if not 'listas' in bigrow:
+                            bigrow['listas'] = []
+                        bigrow['listas'].append(aglist)
+                    else:
+                        # (c) agrupacion formula
+                        bigrow['formula_id'] = c(th.attrib['id'])
+                        bigrow['formula_nombre'] = c(th.text)
+
+            out['votos'].append(bigrow)
+        out['timestamp'] = time.time()
+
 
     def postprocess(self, job):
-        out = job.meta['postprocess'] = {}
+        out = {'source_url': job.url}
+        out.update(job.meta.pop('preprocess'))
+        out.update(job.meta)
+        log.info(u"Done processing %s" % out)
+        json.dump(out, self._out_file, ensure_ascii=True)
 

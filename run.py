@@ -26,6 +26,7 @@
 
 
 from __future__ import absolute_import
+import sys
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -35,9 +36,11 @@ from prap.crawler import Crawler
 
 
 if __name__ == '__main__':
-    spider = Spider()
-    crawler = Crawler(spider, timeout=10, worker_count=10, pipeline_size=100)
-    crawler.start()
+    with open('out.jsonlines', 'wb') as f:
+        spider = Spider(f)
+        crawler = Crawler(spider, timeout=10, worker_count=20, pipeline_size=100)
+        crawler.start()
+
 
 
 
