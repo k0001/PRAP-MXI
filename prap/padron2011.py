@@ -130,6 +130,7 @@ class Spider(object):
                 meta = {
                     'distrito_id': distrito_id,
                     'prov_id': prov_id,
+                    'prov_long_id': '%s999' % prov_id,
                     'cargo_id': cargo_id,
                     'cargo_name': cargo_name }
                 url_results = self.URL_RESULTS_TMPL % meta
@@ -190,13 +191,20 @@ class Spider(object):
                                               'nombre': c(th.text) }
 
             out['votos'].append(bigrow)
-        out['timestamp'] = time.time()
+        out['parsed_timestamp'] = time.time()
 
 
     def postprocess(self, job):
-        out = {'source_url': job.url}
-        out.update(job.meta.pop('preprocess'))
-        out.update(job.meta)
+        out = {'source_url': job.url,
+               'cargo': {'id': job.meta['cargo_id'],
+                         'nombre': job.meta['cargo_name']},
+               'distrito': {'id': job.meta['distrito_id'],
+                            'nombre': DISTRITOS[job.meta['distrito_id']]}}
+        if job.meta['distrito_id'] != job.meta['prov_long_id']:
+            out['distrito']['provincia'] = {
+                'id': job.meta['prov_long_id'],
+                'nombre': DISTRITOS[job.meta['prov_long_id']] }
+        out.update(job.meta['preprocess'])
         log.info(u"Done processing %s" % out)
         json.dump(out, self._out_file, ensure_ascii=True)
         self._out_file.write('\n')
