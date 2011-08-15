@@ -199,4 +199,6 @@ class Spider(object):
         out.update(job.meta)
         log.info(u"Done processing %s" % out)
         json.dump(out, self._out_file, ensure_ascii=True)
+        self._out_file.write('\n')
+        self._out_file.flush()
 
