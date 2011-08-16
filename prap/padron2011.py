@@ -204,7 +204,6 @@ class Spider(object):
 
         ### MESAS PARSING
         table = html.xpath('.//div[@class="pt1"]/table[@class="tablin"]')[0]
-        import ipdb; ipdb.set_trace()
         mesas_total = int(digits_only(table.xpath(
             './/th[contains(.,"Totales")]/following-sibling::*')[0].text))
         mesas_escrutadas = int(digits_only(table.xpath(
