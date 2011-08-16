@@ -224,7 +224,6 @@ class Spider(object):
             'total': electores_total,
             'votantes': electores_votantes }
 
-        print out['mesas'], out['electores']
         out['parsed_timestamp'] = time.time()
 
 
