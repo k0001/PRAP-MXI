@@ -141,11 +141,15 @@ class Spider(object):
     def preprocess(self, job):
         assert (200 <= job.response.status < 300)
         out = job.meta['preprocess'] = {}
-        out['votos'] = []
+        out['results'] = []
 
         doc = html5lib.parse(job.data, treebuilder='lxml',
                              namespaceHTMLElements=False)
         html = doc.getroot()
+
+
+
+        ### RESULTS PARSING
 
         tvotos = html.xpath('.//table[@id="TVOTOS"]')[0]
         # we skip the first <tr> since it's the title row
@@ -194,7 +198,34 @@ class Spider(object):
                         bigrow['formula'] = { 'id': c(th.attrib['id']),
                                               'nombre': c(th.text) }
 
-            out['votos'].append(bigrow)
+            out['results'].append(bigrow)
+
+
+
+        ### MESAS PARSING
+        table = html.xpath('.//div[@class="pt1"]/table[@class="tablin"]')[0]
+        import ipdb; ipdb.set_trace()
+        mesas_total = int(digits_only(table.xpath(
+            './/th[contains(.,"Totales")]/following-sibling::*')[0].text))
+        mesas_escrutadas = int(digits_only(table.xpath(
+            './/th[contains(.,"Escrutadas")]/following-sibling::*')[0].text))
+        out['mesas'] = {
+            'total': mesas_total,
+            'escrutadas': mesas_escrutadas }
+
+
+
+        ### ELECTORES PARSING
+        table = html.xpath('.//div[@class="pt2"]/table[@class="tablin"]')[0]
+        electores_total = int(digits_only(table.xpath(
+            './/th[contains(., "Totales")]/following-sibling::*')[0].text))
+        electores_votantes = int(digits_only(table.xpath(
+            './/th[contains(., "Votantes")]/following-sibling::*')[0].text))
+        out['electores'] = {
+            'total': electores_total,
+            'votantes': electores_votantes }
+
+        print out['mesas'], out['electores']
         out['parsed_timestamp'] = time.time()
 
 
